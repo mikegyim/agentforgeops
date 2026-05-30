@@ -1,0 +1,16 @@
+2026-05-29T14:02:11Z INFO  checkout-api request_id=ab12 user=usr_001 starting checkout
+2026-05-29T14:02:11Z INFO  checkout-api request_id=ab12 calling fraud-scoring
+2026-05-29T14:02:12Z WARN  checkout-api request_id=ab12 fraud-scoring slow 940ms
+2026-05-29T14:02:13Z ERROR checkout-api request_id=ab12 fraud-scoring timeout after 2000ms
+2026-05-29T14:02:13Z ERROR checkout-api request_id=ab13 connection refused to payments-service
+2026-05-29T14:02:14Z ERROR checkout-api request_id=ab14 connection refused to payments-service
+2026-05-29T14:02:15Z ERROR checkout-api request_id=ab15 connection refused to payments-service
+2026-05-29T14:02:16Z FATAL checkout-api pod=checkout-api-7f5d-2 OOMKilled
+2026-05-29T14:02:17Z WARN  checkout-api hpa scaled replicas=18/20
+2026-05-29T14:02:18Z ERROR checkout-api request_id=ab16 503 response from /v1/checkout
+2026-05-29T14:02:19Z ERROR checkout-api request_id=ab17 503 response from /v1/checkout
+2026-05-29T14:02:20Z ERROR checkout-api request_id=ab18 503 response from /v1/checkout
+2026-05-29T14:02:21Z WARN  checkout-api db pool exhausted waiting=42 max=50
+2026-05-29T14:02:25Z ERROR checkout-api Traceback (most recent call last):
+2026-05-29T14:02:25Z ERROR checkout-api   File "checkout.py", line 142, in pay
+2026-05-29T14:02:25Z ERROR checkout-api psycopg2.OperationalError: connection refused

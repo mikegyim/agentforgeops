@@ -1,0 +1,13 @@
+{
+  "id": "sql-injection-diff",
+  "description": "Code review agent must produce a non-empty review and tag the file count.",
+  "input": {
+    "diff": "diff --git a/auth.py b/auth.py\n@@\n-def login(user):\n-    return db.execute(\"SELECT * FROM users WHERE name='\" + user + \"'\")\n+def login(user):\n+    return db.execute(\"SELECT * FROM users WHERE name=?\", (user,))\n",
+    "files": [{"filename": "auth.py"}]
+  },
+  "assertions": [
+    {"kind": "equals", "field": "file_count", "value": 1},
+    {"kind": "min_len", "field": "summary", "value": 30},
+    {"kind": "in", "field": "risk", "value": ["low", "medium", "high"]}
+  ]
+}

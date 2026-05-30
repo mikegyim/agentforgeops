@@ -1,0 +1,15 @@
+{
+  "id": "clean-manifest",
+  "description": "A well-formed deployment should not trip high-severity checks.",
+  "input": {
+    "manifests": [
+      {
+        "path": "ok.yaml",
+        "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: ok\nspec:\n  template:\n    spec:\n      containers:\n      - name: app\n        image: ghcr.io/acme/app:v1.2.3\n        resources:\n          requests: { cpu: 100m, memory: 128Mi }\n          limits:   { cpu: 500m, memory: 512Mi }\n        livenessProbe:\n          httpGet: { path: /health, port: 8080 }\n"
+      }
+    ]
+  },
+  "assertions": [
+    {"kind": "not_contains", "field": "risk", "value": "high"}
+  ]
+}

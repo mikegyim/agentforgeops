@@ -1,0 +1,9 @@
+2026-05-30T03:14:01Z INFO  billing-ingest consumer started
+2026-05-30T03:14:02Z INFO  billing-ingest assigned partitions=0,1,2,3
+2026-05-30T03:14:10Z WARN  billing-ingest consumer lag p0=12000 p1=98000 p2=4000 p3=3000
+2026-05-30T03:15:01Z ERROR billing-ingest pod=billing-ingest-3 OOMKilled
+2026-05-30T03:15:02Z ERROR billing-ingest java.lang.OutOfMemoryError: Java heap space
+2026-05-30T03:15:02Z ERROR billing-ingest   at com.acme.billing.Agg.update(Agg.java:84)
+2026-05-30T03:16:30Z ERROR billing-ingest CrashLoopBackOff pod=billing-ingest-3 restarts=8
+2026-05-30T03:17:00Z WARN  spark-billing_daily_rollup job past SLA by 23m
+2026-05-30T03:17:30Z ERROR billing-ingest schema validation failed: unknown field 'enterprise_tier'

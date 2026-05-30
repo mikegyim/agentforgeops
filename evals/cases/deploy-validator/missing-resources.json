@@ -1,0 +1,16 @@
+{
+  "id": "missing-resources",
+  "description": "Manifest with no resource limits should produce a medium-severity finding.",
+  "input": {
+    "manifests": [
+      {
+        "path": "deployment.yaml",
+        "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: svc\nspec:\n  template:\n    spec:\n      containers:\n      - name: app\n        image: ghcr.io/acme/app:v1.2.3\n"
+      }
+    ]
+  },
+  "assertions": [
+    {"kind": "in", "field": "risk", "value": ["medium", "high"]},
+    {"kind": "contains", "field": "findings.0.msg", "value": "resource"}
+  ]
+}

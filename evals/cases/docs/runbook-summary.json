@@ -1,0 +1,12 @@
+{
+  "id": "runbook-summary",
+  "description": "Docs agent should produce a non-trivial draft for a checkout topic.",
+  "input": {
+    "topic": "checkout 503 incident response",
+    "style": "markdown"
+  },
+  "assertions": [
+    {"kind": "min_len", "field": "draft", "value": 50},
+    {"kind": "equals", "field": "topic", "value": "checkout 503 incident response"}
+  ]
+}

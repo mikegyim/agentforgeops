@@ -1,0 +1,39 @@
+name: AgentForgeOps Evals
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "evals/**"
+  push:
+    branches: [main]
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend deps
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run evals (mock LLM, in-memory store)
+        working-directory: backend
+        env:
+          LLM_PROVIDER: mock
+          VECTOR_BACKEND: chroma
+        run: |
+          PYTHONPATH=. python ../evals/run.py --threshold 0.7
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: evals/report.json

@@ -1,0 +1,12 @@
+{
+  "id": "billing-oom",
+  "description": "OOMKilled + heap error logs should produce signatures and metric snapshot.",
+  "input": {
+    "service": "billing-ingest",
+    "logs": "2026-05-30T03:15:01Z ERROR billing-ingest pod=billing-ingest-3 OOMKilled\n2026-05-30T03:15:02Z ERROR billing-ingest java.lang.OutOfMemoryError: Java heap space\n2026-05-30T03:16:30Z ERROR billing-ingest CrashLoopBackOff pod=billing-ingest-3 restarts=8\n"
+  },
+  "assertions": [
+    {"kind": "min_len", "field": "signatures", "value": 1},
+    {"kind": "contains", "field": "metrics.service", "value": "billing-ingest"}
+  ]
+}

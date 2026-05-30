@@ -1,0 +1,21 @@
+# Intentionally risky manifest used to demo the deploy-validator agent.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: legacy-tool
+  namespace: ops
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: legacy-tool }
+  template:
+    metadata:
+      labels: { app: legacy-tool }
+    spec:
+      containers:
+        - name: tool
+          image: legacy-tool:latest
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          ports: [{ containerPort: 22 }]

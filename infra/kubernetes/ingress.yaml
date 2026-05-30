@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agentforgeops
+  namespace: agentforgeops
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: agentforgeops.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service: { name: backend, port: { number: 80 } }
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: frontend, port: { number: 80 } }

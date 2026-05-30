@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: agentforgeops
+  labels: { app: frontend }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: frontend }
+  template:
+    metadata:
+      labels: { app: frontend }
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/your-org/agentforgeops-frontend:latest
+          ports: [{ containerPort: 3000 }]
+          env:
+            - { name: BACKEND_URL, value: http://backend.agentforgeops.svc.cluster.local }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits:   { cpu: 500m, memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: agentforgeops
+spec:
+  type: ClusterIP
+  selector: { app: frontend }
+  ports:
+    - port: 80
+      targetPort: 3000

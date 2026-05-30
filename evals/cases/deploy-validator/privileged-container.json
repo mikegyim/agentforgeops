@@ -1,0 +1,17 @@
+{
+  "id": "privileged-container",
+  "description": "Container running as privileged + root must be flagged as high risk.",
+  "input": {
+    "manifests": [
+      {
+        "path": "deployment.yaml",
+        "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: bad\nspec:\n  template:\n    spec:\n      containers:\n      - name: web\n        image: ghcr.io/acme/web:latest\n        securityContext:\n          privileged: true\n          runAsUser: 0\n"
+      }
+    ]
+  },
+  "assertions": [
+    {"kind": "equals", "field": "risk", "value": "high"},
+    {"kind": "min_len", "field": "findings", "value": 2},
+    {"kind": "contains", "field": "findings.0.msg", "value": "privileged"}
+  ]
+}

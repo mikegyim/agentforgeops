@@ -1,0 +1,68 @@
+name: AgentForgeOps AI PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute diff
+        id: diff
+        run: |
+          BASE=${{ github.event.pull_request.base.sha }}
+          HEAD=${{ github.event.pull_request.head.sha }}
+          git diff $BASE $HEAD > pr.diff
+          echo "diff_size=$(wc -c < pr.diff)" >> $GITHUB_OUTPUT
+
+      - name: List changed files
+        id: files
+        run: |
+          jq -n --slurpfile files <(git diff --name-only \
+              ${{ github.event.pull_request.base.sha }} \
+              ${{ github.event.pull_request.head.sha }} \
+              | jq -R . | jq -s .) \
+            '{files: ($files[0] | map({filename: .}))}' > files.json
+          cat files.json
+
+      - name: Call AgentForgeOps code-review agent
+        env:
+          AGENTFORGE_URL: ${{ secrets.AGENTFORGE_URL }}
+          AGENTFORGE_TOKEN: ${{ secrets.AGENTFORGE_TOKEN }}
+        run: |
+          DIFF=$(jq -Rs . < pr.diff)
+          FILES=$(jq -c .files < files.json)
+          PAYLOAD=$(jq -n --arg diff "$(cat pr.diff)" --argjson files "$FILES" \
+            --arg repo "${{ github.repository }}" --argjson pr ${{ github.event.pull_request.number }} \
+            '{diff: $diff, files: $files, repo: $repo, pr: $pr}')
+          curl -sSf -X POST "$AGENTFORGE_URL/api/agents/code-review" \
+            -H "Authorization: Bearer $AGENTFORGE_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" > review.json
+          cat review.json
+
+      - name: Post review comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const review = JSON.parse(fs.readFileSync('review.json', 'utf8'));
+            const body = `## 🤖 AgentForgeOps review\n\n` +
+                         `**Risk:** ${review.risk}\n\n` +
+                         `${review.summary}\n\n` +
+                         `_Sources:_ ${(review.sources || []).join(', ') || 'none'}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });

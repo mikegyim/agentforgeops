@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout-api
+  namespace: payments
+  labels: { app: checkout-api, tier: t1 }
+spec:
+  replicas: 6
+  selector:
+    matchLabels: { app: checkout-api }
+  template:
+    metadata:
+      labels: { app: checkout-api }
+    spec:
+      containers:
+        - name: checkout
+          image: ghcr.io/acme/checkout-api:v1.42.0
+          ports: [{ containerPort: 8080 }]
+          env:
+            - { name: DB_URL, valueFrom: { secretKeyRef: { name: checkout-db, key: url } } }
+            - { name: FRAUD_URL, value: http://fraud-scoring.trust.svc.cluster.local }
+          resources:
+            requests: { cpu: 500m, memory: 512Mi }
+            limits:   { cpu: "2",  memory: 2Gi }
+          readinessProbe:
+            httpGet: { path: /ready, port: 8080 }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: 8080 }
+            periodSeconds: 10
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: checkout-api
+  namespace: payments
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: checkout-api
+  minReplicas: 6
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 65 }

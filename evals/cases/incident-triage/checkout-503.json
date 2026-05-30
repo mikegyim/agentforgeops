@@ -1,0 +1,13 @@
+{
+  "id": "checkout-503",
+  "description": "Checkout incident logs should yield repeated error signatures and an analysis.",
+  "input": {
+    "service": "checkout-api",
+    "logs": "2026-05-29T14:02:13Z ERROR checkout-api request_id=ab12 fraud-scoring timeout after 2000ms\n2026-05-29T14:02:13Z ERROR checkout-api request_id=ab13 connection refused to payments-service\n2026-05-29T14:02:14Z ERROR checkout-api request_id=ab14 connection refused to payments-service\n2026-05-29T14:02:16Z FATAL checkout-api pod=checkout-api-7f5d-2 OOMKilled\n2026-05-29T14:02:18Z ERROR checkout-api request_id=ab16 503 response from /v1/checkout\n2026-05-29T14:02:21Z WARN  checkout-api db pool exhausted waiting=42 max=50\n"
+  },
+  "assertions": [
+    {"kind": "equals", "field": "service", "value": "checkout-api"},
+    {"kind": "min_len", "field": "signatures", "value": 1},
+    {"kind": "min_len", "field": "analysis", "value": 30}
+  ]
+}

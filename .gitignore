@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.local
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# Data
+/data/
+uploads/

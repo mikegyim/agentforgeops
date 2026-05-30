@@ -1,0 +1,16 @@
+{
+  "id": "public-s3-terraform",
+  "description": "Terraform that opens 0.0.0.0/0 must be high risk.",
+  "input": {
+    "manifests": [
+      {
+        "path": "main.tf",
+        "content": "resource \"aws_security_group_rule\" \"web\" {\n  type        = \"ingress\"\n  cidr_blocks = [\"0.0.0.0/0\"]\n  from_port   = 22\n  to_port     = 22\n  protocol    = \"tcp\"\n}\nresource \"aws_s3_bucket\" \"x\" {\n  encrypted = false\n}\n"
+      }
+    ]
+  },
+  "assertions": [
+    {"kind": "equals", "field": "risk", "value": "high"},
+    {"kind": "contains", "field": "findings.0.msg", "value": "public"}
+  ]
+}
