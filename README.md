@@ -24,7 +24,8 @@ RAG over your team's docs and code, a fleet of specialized agents for code revie
 - **Five agents** — Code Review, Test Generation, Deployment Validation, Incident Triage, Documentation — each grounded with RAG where it helps.
 - **LangGraph-style orchestrator** that threads state between agents to express multi-step workflows declaratively.
 - **Vector store abstraction** — Qdrant by default, in-memory fallback so the stack runs without infra. Optional Chroma path is reserved.
-- **LLM abstraction** — OpenAI / Anthropic / Bedrock-compatible, with a deterministic mock so the platform boots without keys.
+- **LLM abstraction** — OpenAI, Anthropic, and **AWS Bedrock** (boto3, Anthropic + Titan model families) clients, with a deterministic mock so the platform boots without keys.
+- **OpenTelemetry observability** — every LLM call is wrapped in a span tagged with provider, model, prompt/completion tokens, estimated USD cost, and exception status. Spans ship to a Jaeger all-in-one in the dev compose stack.
 - **Next.js 14 frontend** with pages for chat, agents, upload, search, incidents, and PR review.
 - **Docker Compose** dev stack (Postgres, Qdrant, Prometheus, Grafana, backend, frontend).
 - **Kubernetes manifests** (Deployment, Service, StatefulSet for Qdrant, Ingress).
@@ -71,6 +72,7 @@ docker compose up --build
 - Backend docs: http://localhost:8000/docs
 - Qdrant: http://localhost:6333
 - Grafana: http://localhost:3001 (admin / admin)
+- **Jaeger (LLM traces):** http://localhost:16686 — pick service `agentforgeops-backend`, find spans named `llm.generate` with `llm.model`, `llm.cost_usd`, `llm.prompt_tokens`, `llm.completion_tokens`.
 
 The stack boots without any API keys — agents and chat will use the deterministic mock LLM. Set `LLM_PROVIDER=anthropic` (or `openai`) and the corresponding key in `backend/.env.example` to use a real model.
 
@@ -150,75 +152,11 @@ Two integration modes:
 1. **GitHub Actions** (`github-actions/ai-pr-review.yml`) — copy into `.github/workflows/` of any repo. Set `AGENTFORGE_URL` and `AGENTFORGE_TOKEN` secrets. The workflow posts a comment with the agent's review on every PR.
 2. **Webhook** (`/api/webhooks/github`) — point a GitHub webhook at your AgentForgeOps deployment. Set `GITHUB_WEBHOOK_SECRET` and `GITHUB_TOKEN`.
 
-## Tech stack
+## LLM providers
 
-- **Backend:** Python 3.11, FastAPI, SQLAlchemy (async), Pydantic v2
-- **Frontend:** Next.js 14, React 18, TypeScript, Tailwind
-- **Vector DB:** Qdrant (default), in-memory fallback (Chroma path reserved)
-- **LLM:** OpenAI / Anthropic / Bedrock-compatible client (mock by default)
-- **Embeddings:** sentence-transformers (`all-MiniLM-L6-v2`) with a deterministic hash fallback
-- **Infra:** Docker Compose, Kubernetes manifests, Terraform (AWS)
-- **Observability:** Prometheus + Grafana (compose), mocked metrics for triage demos
-- **CI/CD:** GitHub Actions
+Set `LLM_PROVIDER` in `backend/.env` to switch:
 
-## Repo layout
-
-```
-agentforgeops/
-├── backend/
-│   ├── app/
-│   │   ├── api/            # FastAPI routers
-│   │   ├── agents/         # Code review, test gen, deploy validator, triage, docs, orchestrator
-│   │   ├── rag/            # Embeddings, vector store, indexer, retriever
-│   │   ├── integrations/   # LLM, GitHub, Prometheus (mock)
-│   │   ├── models/         # ORM + Pydantic schemas
-│   │   └── main.py
-│   ├── tests/
-│   └── Dockerfile
-├── frontend/               # Next.js app
-├── infra/
-│   ├── docker-compose.yml
-│   ├── kubernetes/
-│   └── terraform/
-├── .github/workflows/
-│   ├── ai-pr-review.yml
-│   └── evals.yml
-├── github-actions/        # copies kept for documentation
-│   ├── ai-pr-review.yml
-│   └── evals.yml
-└── sample-data/
-    ├── runbooks/
-    ├── logs/
-    └── k8s-manifests/
-```
-
-## Tests
-
-```bash
-cd backend
-pytest -q
-```
-
-The smoke tests exercise the agents and RAG round-trip with the in-memory store + mock LLM — no external services required.
-
-## Evals
-
-A small evaluation harness ships in `evals/`. It runs labeled examples
-through each agent and reports pass-rate + per-example scores.
-
-```bash
-cd backend
-PYTHONPATH=. python ../evals/run.py
-```
-
-Add new cases by dropping JSON files into `evals/cases/<agent>/`. Each case
-declares its `assertions` — substrings, regexes, or risk levels the agent's
-output must match. See `evals/README.md` for the schema.
-
-## License
-
-MIT — see `LICENSE`.
-
-## Author
-
-Michael Opoku-Gyimah — [@mikegyim](https://github.com/mikegyim)
+| Provider    | Required env                                                       |
+|-------------|--------------------------------------------------------------------|
+| `mock`      | none — deterministic, used by default                              |
+| `openai`   

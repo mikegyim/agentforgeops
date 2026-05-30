@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     anthropic_api_key: str = ""
     aws_region: str = "us-east-1"
+    bedrock_model: str = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+
+    # Observability
+    otel_endpoint: str = ""  # e.g. http://jaeger:4317
+    otel_console: bool = False
 
     # Embeddings
     embedding_provider: Literal["openai", "anthropic", "local"] = "local"
