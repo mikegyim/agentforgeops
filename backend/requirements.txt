@@ -10,3 +10,13 @@ qdrant-client==1.11.3
 sentence-transformers==3.1.1
 numpy==1.26.4
 pyyaml==6.0.2
+
+# AWS Bedrock
+boto3==1.35.36
+
+# Observability (optional at runtime — observability.py falls back to no-op)
+opentelemetry-api==1.27.0
+opentelemetry-sdk==1.27.0
+opentelemetry-exporter-otlp-proto-grpc==1.27.0
+opentelemetry-instrumentation-fastapi==0.48b0
+opentelemetry-instrumentation-httpx==0.48b0

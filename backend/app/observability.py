@@ -1,8 +1,10 @@
 """OpenTelemetry tracing for AgentForgeOps.
 
-Spans are exported via OTLP if `OTEL_EXPORTER_OTLP_ENDPOINT` is set
-(the docker-compose stack ships a Jaeger all-in-one on :4317).
-Otherwise this is a no-op and the app runs normally.
+OTel is optional: if `opentelemetry-api`/`opentelemetry-sdk` aren't
+installed, this module exposes no-op shims so the rest of the platform
+keeps working (evals, agents, tests). When OTel is installed AND
+`OTEL_EXPORTER_OTLP_ENDPOINT` is set, spans are exported via OTLP
+(e.g. to the Jaeger all-in-one shipped in docker-compose).
 
 Every LLM call gets a span with:
 - llm.provider, llm.model
@@ -15,19 +17,14 @@ from __future__ import annotations
 
 import logging
 import os
+from contextlib import contextmanager
 from typing import Optional
-
-from opentelemetry import trace
-from opentelemetry.sdk.resources import SERVICE_NAME, Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
 
 logger = logging.getLogger(__name__)
 
 _initialized = False
 
-# USD per 1K tokens, (prompt, completion). Approximate published rates;
-# real billing is whatever Anthropic/OpenAI/AWS charge you.
+# USD per 1K tokens, (prompt, completion). Approximate published rates.
 PRICING: dict[str, tuple[float, float]] = {
     "gpt-4o-mini": (0.00015, 0.0006),
     "gpt-4o": (0.0025, 0.01),
@@ -40,7 +37,7 @@ PRICING: dict[str, tuple[float, float]] = {
 
 
 def estimate_tokens(s: str) -> int:
-    """Very rough fallback: ~4 chars per token."""
+    """Cheap fallback: ~4 chars per token."""
     return max(1, len(s) // 4)
 
 
@@ -52,11 +49,42 @@ def estimate_cost(model: str, prompt_tokens: int, completion_tokens: int) -> flo
     return (prompt_tokens / 1000) * p + (completion_tokens / 1000) * c
 
 
+# ---- OTel availability ---------------------------------------------------
+
+try:  # pragma: no cover
+    from opentelemetry import trace as _otel_trace
+    from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import (
+        BatchSpanProcessor,
+        ConsoleSpanExporter,
+    )
+    _OTEL_AVAILABLE = True
+except ImportError:
+    _OTEL_AVAILABLE = False
+    _otel_trace = None  # type: ignore[assignment]
+
+
+class _NoopSpan:
+    def set_attribute(self, *_a, **_kw) -> None: ...
+    def record_exception(self, *_a, **_kw) -> None: ...
+    def set_status(self, *_a, **_kw) -> None: ...
+    def __enter__(self): return self
+    def __exit__(self, *_a) -> None: ...
+
+
+class _NoopTracer:
+    @contextmanager
+    def start_as_current_span(self, _name: str):
+        yield _NoopSpan()
+
+
 def init_tracing(service_name: str = "agentforgeops-backend") -> None:
-    """Configure a global tracer. Idempotent."""
+    """Configure a global tracer. Idempotent. No-op when OTel isn't installed."""
     global _initialized
-    if _initialized:
+    if _initialized or not _OTEL_AVAILABLE:
         return
+
     provider = TracerProvider(resource=Resource.create({SERVICE_NAME: service_name}))
 
     endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
@@ -69,31 +97,28 @@ def init_tracing(service_name: str = "agentforgeops-backend") -> None:
                 BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint, insecure=True))
             )
             logger.info("OTel exporter configured: %s", endpoint)
-        except Exception as e:  # pragma: no cover
+        except Exception as e:
             logger.warning("OTel exporter init failed, falling back to console: %s", e)
             provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
     elif os.getenv("OTEL_CONSOLE", "").lower() in {"1", "true", "yes"}:
         provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
 
-    trace.set_tracer_provider(provider)
-
-    # Auto-instrument FastAPI HTTP server (best-effort).
-    try:
-        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor  # noqa
-    except Exception:  # pragma: no cover
-        pass
-
+    _otel_trace.set_tracer_provider(provider)
     _initialized = True
 
 
 def get_tracer():
-    return trace.get_tracer("agentforgeops")
+    if not _OTEL_AVAILABLE:
+        return _NoopTracer()
+    return _otel_trace.get_tracer("agentforgeops")
 
 
 def instrument_fastapi(app) -> None:
     """Auto-instrument an existing FastAPI app, if the package is available."""
+    if not _OTEL_AVAILABLE:
+        return
     try:
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
         FastAPIInstrumentor.instrument_app(app)
-    except Exception:  # pragma: no cover
+    except Exception:
         pass
