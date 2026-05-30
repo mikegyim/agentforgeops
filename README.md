@@ -1,5 +1,14 @@
 # AgentForgeOps
 
+![AgentForgeOps CI](https://img.shields.io/github/actions/workflow/status/mikegyim/agentforgeops/evals.yml?branch=main&label=AgentForgeOps%20CI)
+![python](https://img.shields.io/badge/python-3.11-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs&logoColor=white)
+![RAG](https://img.shields.io/badge/RAG-Qdrant-DC382D)
+![kubernetes](https://img.shields.io/badge/kubernetes-ready-326CE5?logo=kubernetes&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform&logoColor=white)
+![license](https://img.shields.io/badge/license-MIT-yellow)
+
 **AI-Native DevOps & Software Engineering Platform.**
 Author: **Michael Opoku-Gyimah** · GitHub: [@mikegyim](https://github.com/mikegyim)
 
@@ -180,4 +189,36 @@ agentforgeops/
 └── sample-data/
     ├── runbooks/
     ├── logs/
- 
+    └── k8s-manifests/
+```
+
+## Tests
+
+```bash
+cd backend
+pytest -q
+```
+
+The smoke tests exercise the agents and RAG round-trip with the in-memory store + mock LLM — no external services required.
+
+## Evals
+
+A small evaluation harness ships in `evals/`. It runs labeled examples
+through each agent and reports pass-rate + per-example scores.
+
+```bash
+cd backend
+PYTHONPATH=. python ../evals/run.py
+```
+
+Add new cases by dropping JSON files into `evals/cases/<agent>/`. Each case
+declares its `assertions` — substrings, regexes, or risk levels the agent's
+output must match. See `evals/README.md` for the schema.
+
+## License
+
+MIT — see `LICENSE`.
+
+## Author
+
+Michael Opoku-Gyimah — [@mikegyim](https://github.com/mikegyim)
